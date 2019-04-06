@@ -10,12 +10,18 @@
 	<node pkg="learning_joy" type="turtle_teleop_joy" name="teleop" />
 	
 	<!-- Joy_Bebop_Interface -->
-	<node pkg="learning_joy" type="joy_bebop_interface" name="interface" output="screen"/>
+	<node pkg="learning_joy" type="joy_bebop_interface" name="interface"/>
 	
 	<!-- Image View Node -->
 	<node pkg="image_view" type="image_view" name="bebop_image">
 		<remap from="image" to="/bebop/image_raw"/>
 		<param name="autosize" value="true" type="bool"/>
+	</node>
+	
+	<!-- Video Record Node -->
+	<node pkg="image_view" type="video_recorder" name="bebop_record" output="screen" cwd="node">
+		<remap from="image" to="/bebop/image_raw"/>
+		<param name="fps" value="30" type="int"/>
 	</node>
 	
 	<!-- Bebeop Driver Node -->

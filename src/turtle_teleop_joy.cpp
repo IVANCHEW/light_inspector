@@ -67,6 +67,9 @@ void TeleopTurtle::joyCallback(const sensor_msgs::Joy::ConstPtr& joy)
 	geometry_msgs::Twist twist;
 	geo_msg.linear.x = joy->axes[1];
 	geo_msg.linear.y = joy->axes[0];
+	//Second joy stick left-right
+	geo_msg.angular.z = joy->axes[3];
+	//Second joy stick up-down
 	geo_msg.linear.z = joy->axes[4];
 	
 	ROS_DEBUG_STREAM(geo_msg);

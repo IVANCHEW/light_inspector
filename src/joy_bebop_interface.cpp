@@ -47,6 +47,7 @@ void cmdVelCallback(const geometry_msgs::Twist::ConstPtr& msg)
   geo_msg.linear.x = msg->linear.x;
 	geo_msg.linear.y = msg->linear.y;
 	geo_msg.linear.z = msg->linear.z;
+  geo_msg.angular.z = msg->angular.z;
 }
 
 void takeOffCallback(const std_msgs::Empty::ConstPtr& received_msg)

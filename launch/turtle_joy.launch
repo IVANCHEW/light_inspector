@@ -19,7 +19,7 @@
 	</node>
 	
 	<!-- Video Record Node -->
-	<node pkg="image_view" type="video_recorder" name="bebop_record" output="screen" cwd="node">
+	<node pkg="image_view" type="video_recorder" name="bebop_record" output="screen">
 		<remap from="image" to="/bebop/image_raw"/>
 		<param name="fps" value="30" type="int"/>
 	</node>

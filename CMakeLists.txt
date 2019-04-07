@@ -11,7 +11,11 @@ find_package(catkin REQUIRED COMPONENTS
   joy
   roscpp
   turtlesim
+  cv_bridge
+  image_transport
+  OpenCV
 )
+
 ## System dependencies are found with CMake's conventions
 # find_package(Boost REQUIRED COMPONENTS system)
 
@@ -101,11 +105,12 @@ find_package(catkin REQUIRED COMPONENTS
 ## LIBRARIES: libraries you create in this project that dependent projects also need
 ## CATKIN_DEPENDS: catkin_packages dependent projects also need
 ## DEPENDS: system dependencies of this project that dependent projects also need
-catkin_package(
+catkin_package(CATKIN_DEPENDS
 #  INCLUDE_DIRS include
 #  LIBRARIES learning_joy
 #  CATKIN_DEPENDS joy roscpp turtlesim
 #  DEPENDS system_lib
+  image_transport
 )
 
 ###########
@@ -155,6 +160,8 @@ target_link_libraries(turtle_teleop_joy ${catkin_LIBRARIES})
 add_executable(joy_bebop_interface src/joy_bebop_interface.cpp)
 target_link_libraries(joy_bebop_interface ${catkin_LIBRARIES})
 
+add_executable(tracking_test src/tracking_test.cpp)
+target_link_libraries(tracking_test ${catkin_LIBRARIES})
 
 #############
 ## Install ##

@@ -7,6 +7,10 @@
 #include <opencv2/calib3d/calib3d.hpp>
 #include <opencv2/highgui/highgui.hpp>
 #include <opencv2/aruco.hpp>
+#include <opencv2/tracking.hpp>
+
+cv::Ptr<cv::Tracker> tracker = cv::TrackerKCF::create();
+bool initialisation = true;
 
 void imageCallback(const sensor_msgs::ImageConstPtr& msg)
 {
@@ -20,7 +24,7 @@ void imageCallback(const sensor_msgs::ImageConstPtr& msg)
   int thresh = 100;
   int max_thresh = 255;
   cv::RNG rng(12345);
-
+  
   try
   {
     image = cv_bridge::toCvShare(msg, "bgr8")->image;
@@ -30,11 +34,29 @@ void imageCallback(const sensor_msgs::ImageConstPtr& msg)
     cv::findContours( image_canny, contours, hierarchy, CV_RETR_TREE, CV_CHAIN_APPROX_SIMPLE, cv::Point(0, 0) );
     
     image_drawing = cv::Mat::zeros( image_canny.size(), CV_8UC3 );
+    
+    std::vector<std::vector<cv::Point> > contours_poly( contours.size() );
+    std::vector<cv::Rect> boundRect( contours.size() );
+    std::vector<cv::Point2f> center( contours.size() );
+    //~ std::vector<float> radius( contours.size() );
+    
+    for( int i = 0; i< contours.size(); i++ ){
+      cv::approxPolyDP( cv::Mat(contours[i]), contours_poly[i], 3, true);
+      boundRect[i] = cv::boundingRect( cv::Mat(contours_poly[i]) );
+    }
+    
     for( int i = 0; i< contours.size(); i++ )
     {
       //~ cv::Scalar color = cv::Scalar( rng.uniform(0, 255), rng.uniform(0,255), rng.uniform(0,255) ); //For random colors
-      cv::Scalar color = cv::Scalar(0,255,0); //Color is BGR
-      cv::drawContours( image_drawing, contours, i, color, 2, 8, hierarchy, 0, cv::Point() );
+      cv::Scalar color_blue = cv::Scalar(0,255,0); //Color is BGR
+      cv::drawContours( image_drawing, contours, i, color_blue, 2, 8, hierarchy, 0, cv::Point() );
+      cv::Scalar color_red = cv::Scalar(0,0,255);
+      cv::rectangle( image_drawing, boundRect[i].tl(), boundRect[i].br(), color_red, 2, 8, 0);
+      
+    }
+    
+    if (initialisation){ //Configure Region of Interest (ROI)
+      
     }
 
     cv::imshow("view", image_drawing);

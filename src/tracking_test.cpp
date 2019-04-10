@@ -70,11 +70,11 @@ void imageCallback(const sensor_msgs::ImageConstPtr& msg)
   {
     image = cv_bridge::toCvShare(msg, "bgr8")->image;
     cv::cvtColor( image, image_grey, CV_BGR2GRAY);
-    cv::cvtColor( image, image_tracker, CV_BGR2GRAY);
     cv::blur( image_grey, image_grey, cv::Size(3,3) );
     cv::Canny( image_grey, image_canny, thresh, thresh*2, 3 );
     cv::findContours( image_canny, contours, hierarchy, CV_RETR_TREE, CV_CHAIN_APPROX_SIMPLE, cv::Point(0, 0) );    
     image_drawing = cv::Mat::zeros( image_canny.size(), CV_8UC3 );
+    image_tracker = cv::Mat::zeros( image_canny.size(), CV_8UC3 );
     
     std::vector<std::vector<cv::Point> > contours_poly( contours.size() );
     std::vector<cv::Rect2d> boundRect( contours.size() );
@@ -104,9 +104,8 @@ void imageCallback(const sensor_msgs::ImageConstPtr& msg)
       ROS_DEBUG_STREAM("Tracking Object Size: " << multiTracker->getObjects().size());
       for(unsigned i=0; i<multiTracker->getObjects().size(); i++)
       {
-        //~ cv::rectangle(image_tracker, multiTracker->getObjects()[i], color_red, 2, 1);
         cv::Point rect_center = ((multiTracker->getObjects()[i].br() + multiTracker->getObjects()[i].tl())*0.5);
-        cv::circle(image_tracker, rect_center, 1, color_red, 1, 8, 0); 
+        cv::circle(image_tracker, rect_center, 5, color_red, 5, 8, 0); 
         ROS_DEBUG_STREAM("Object " << i << " Point: " << rect_center);
       }
     }
@@ -115,8 +114,8 @@ void imageCallback(const sensor_msgs::ImageConstPtr& msg)
     cv::Point image_center;
     image_center.x = image_tracker.cols/2;
     image_center.y = image_tracker.rows/2;
-    cv::circle(image_tracker, image_center, 1, color_red, 1, 8, 0); 
-    ROS_DEBUG_STREAM("Image Center " << image_center);
+    //~ cv::circle(image_tracker, image_center, 5, color_red, 5, 8, 0); 
+    //~ ROS_DEBUG_STREAM("Image Center " << image_center);
     
     cv::imshow("view", image_drawing);
     cv::imshow("original", image);
@@ -134,18 +133,18 @@ int main(int argc, char **argv)
   ros::init(argc, argv, "image_listener");
   ros::NodeHandle nh;
   ros::console::set_logger_level(ROSCONSOLE_DEFAULT_NAME, ros::console::levels::Debug);
-  
+  int windows_reduction = 2;
   cv::namedWindow("view", cv::WINDOW_NORMAL);
   cv::moveWindow("view", 0,0);
-  cv::resizeWindow("view", 1712,960);
+  cv::resizeWindow("view", 1712/windows_reduction,960/windows_reduction);
   
   cv::namedWindow("original", cv::WINDOW_NORMAL);
-  cv::moveWindow("original", 2000,0);
-  cv::resizeWindow("original", 1712,960);
+  cv::moveWindow("original", 2000/windows_reduction,0);
+  cv::resizeWindow("original", 1712/windows_reduction,960/windows_reduction);
 
   cv::namedWindow("tracker", cv::WINDOW_NORMAL);
-  cv::moveWindow("tracker", 0,1100);
-  cv::resizeWindow("tracker", 1712,960);
+  cv::moveWindow("tracker", 0,1100/windows_reduction);
+  cv::resizeWindow("tracker", 1712/windows_reduction,960/windows_reduction);
   
   cv::startWindowThread();
   

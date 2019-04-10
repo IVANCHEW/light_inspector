@@ -68,24 +68,24 @@ void TeleopTurtle::joyCallback(const sensor_msgs::Joy::ConstPtr& joy)
 	geo_msg.linear.x = joy->axes[1];
 	geo_msg.linear.y = joy->axes[0];
 	//Second joy stick left-right
-	geo_msg.angular.z = joy->axes[3];
+	geo_msg.angular.z = joy->axes[2];
 	//Second joy stick up-down
-	geo_msg.linear.z = joy->axes[4];
+	geo_msg.linear.z = joy->axes[5];
 	
 	ROS_DEBUG_STREAM(geo_msg);
 	
-	if (joy->buttons[1] == 1){
+	if (joy->buttons[2] == 1){
 	  //Right Palm Cirlce Button
 	  ROS_DEBUG_STREAM("Button 1 pressed");
 	  take_off_command();
-	} else if (joy->buttons[2] == 1){
+	} else if (joy->buttons[3] == 1){
 	  //Right Palm Triangle Button
 	  ROS_DEBUG_STREAM("Button 2 pressed");
 	  hover();
 	} else if (joy->buttons[3] == 1){
 	  //Right Palm Square Button
 	  ROS_DEBUG_STREAM("Button 3 pressed");
-	} else if (joy->buttons[0] == 1){
+	} else if (joy->buttons[1] == 1){
 	  //Right Palm Cross Button
 	  land_command();
 	  ROS_DEBUG_STREAM("Button 0 pressed");

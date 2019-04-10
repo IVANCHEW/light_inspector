@@ -1,8 +1,8 @@
 <?xml version="1.0"?>
 <package format="2">
-  <name>learning_joy</name>
+  <name>light_inspector</name>
   <version>0.0.0</version>
-  <description>The learning_joy package</description>
+  <description>The light_inspector package</description>
 
   <!-- One maintainer tag required, multiple allowed, one person per tag -->
   <!-- Example:  -->
@@ -55,6 +55,8 @@
   <build_depend>turtlesim</build_depend>
   <build_depend>image_transport</build_depend>
   <build_depend>cv_bridge</build_depend>
+  <build_depend>video_stream_opencv</build_depend>
+  <build_depend>joystick_drivers</build_depend>
   
   <build_export_depend>joy</build_export_depend>
   <build_export_depend>roscpp</build_export_depend>
@@ -67,7 +69,8 @@
   <exec_depend>image_transport</exec_depend>
   <exec_depend>cv_bridge</exec_depend>
   <exec_depend>roscpp</exec_depend>
-
+  <exec_depend>video_stream_opencv</exec_depend>
+  <exec_depend>joystick_drivers</exec_depend>
   <!-- The export tag contains other, unspecified, tags -->
   <export>
     <!-- Other tools can request additional information be placed here -->

@@ -6,7 +6,7 @@
         <arg name="camera_name" value="videofile" />
         <!-- full path to the video file -->
         <!-- wget http://techslides.com/demos/sample-videos/small.mp4 -O /tmp/small.mp4 -->
-        <arg name="video_stream_provider" value="/home/slayer9419/catkin_ws/src/learning_joy/sample/output.avi" />
+        <arg name="video_stream_provider" value="/home/cerc/catkin_ws/src/learning_joy/sample/output.avi" />
         <!-- set camera fps to (video files not affected) -->
         <!-- <arg name="set_camera_fps" value="30"/> -->
         <!-- set buffer queue size of frame capturing to -->

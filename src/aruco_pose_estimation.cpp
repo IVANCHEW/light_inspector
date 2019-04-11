@@ -8,7 +8,10 @@
 #include <opencv2/opencv.hpp>
 #include <opencv2/aruco.hpp>
 #include <yaml-cpp/yaml.h>
-#include <iostream>
+#include <sensor_msgs/image_encodings.h>
+#include "std_msgs/Bool.h"
+#include "geometry_msgs/PoseStamped.h"
+#include "geometry_msgs/Pose.h"
 
 //Parameters for pose estimation
 cv::Ptr<cv::aruco::Dictionary> dictionary = cv::aruco::getPredefinedDictionary(cv::aruco::DICT_6X6_250);
@@ -16,7 +19,10 @@ cv::Mat camera_matrix;
 cv::Mat dist_coeffs;
 cv::Mat tvec;
 cv::Mat rvec;
-
+int landing_marker_id;
+std_msgs::Bool landing_marker;
+geometry_msgs::PoseStamped pose_msg;
+  
 //Parameters for general ROS functions
 float aruco_size; 
 int windows_reduction;
@@ -25,9 +31,10 @@ std::string package_path_;
 std::string point_cloud_topic_name;
 std::string image_topic_name;
 std::string camera_name;
-
-//Parameter for video recording
-cv::VideoWriter video;
+ros::Publisher image_pub_;
+ros::Publisher landing_bool_pub_;
+ros::Publisher landing_tvec_pub_;
+int counter;
 
 void updateParameters(YAML::Node config){
 	std::cout << "Updating Camera Parameters" << std::endl;
@@ -86,16 +93,41 @@ bool arucoPoseEstimation(cv::Mat& input_image, int id, cv::Mat& tvec, cv::Mat& r
 	
 	cv::cvtColor(input_image, gray, cv::COLOR_BGR2GRAY);
 	cv::aruco::detectMarkers(gray, dictionary, marker_corners, marker_ids);	
-	ROS_DEBUG_STREAM("Number of markers detected: " << marker_ids.size());
+	//~ ROS_DEBUG_STREAM("Number of markers detected: " << marker_ids.size());
+	landing_marker.data = false;
 	if (marker_ids.size() > 0){
 		for (int i = 0 ; i < marker_ids.size() ; i++){
-			ROS_DEBUG_STREAM("Marker ID found: " << marker_ids[i] );
-			
-			std::vector< std::vector<cv::Point2f> > single_corner(1);
-			single_corner[0] = marker_corners[i];			
-			cv::aruco::estimatePoseSingleMarkers(single_corner, aruco_square_size, mtx, dist, rvec, tvec);
-			cv::aruco::drawDetectedMarkers(input_image, marker_corners, marker_ids);
-			cv::aruco::drawAxis(input_image, mtx, dist, rvec, tvec, aruco_square_size/2);
+			//~ ROS_DEBUG_STREAM("Marker ID found: " << marker_ids[i] );
+			if (marker_ids[i]==landing_marker_id){
+				std::vector< std::vector<cv::Point2f> > single_corner(1);
+				single_corner[0] = marker_corners[i];			
+				cv::aruco::estimatePoseSingleMarkers(single_corner, aruco_square_size, mtx, dist, rvec, tvec);
+				cv::aruco::drawDetectedMarkers(input_image, marker_corners, marker_ids);
+				cv::aruco::drawAxis(input_image, mtx, dist, rvec, tvec, aruco_square_size/2);
+				
+				//Annotate image with text
+				std::stringstream sstm;
+				std::string sstm_result;
+				sstm << "X: " << tvec.at<double>(0);
+				sstm_result = sstm.str();
+				cv::putText(input_image, sstm_result, cv::Point2f(20,20), cv::FONT_HERSHEY_PLAIN, 1,  cv::Scalar(0,255,0,255));
+				sstm.str("");
+				sstm << "Y:" << tvec.at<double>(1);
+				sstm_result = sstm.str();
+				cv::putText(input_image, sstm_result, cv::Point2f(20,40), cv::FONT_HERSHEY_PLAIN, 1,  cv::Scalar(0,255,0,255));
+				sstm.str("");
+				sstm << "Z: " << tvec.at<double>(2);				
+				sstm_result = sstm.str();
+				cv::putText(input_image, sstm_result, cv::Point2f(20,60), cv::FONT_HERSHEY_PLAIN, 1,  cv::Scalar(0,255,0,255));
+				
+				//Prepare ROS messages
+				landing_marker.data = true;
+				pose_msg.pose.position.x = tvec.at<double>(0);
+				pose_msg.pose.position.y = tvec.at<double>(1);
+				pose_msg.pose.position.z = tvec.at<double>(2);
+				ROS_DEBUG_STREAM("Landing Marker Found");	
+				ROS_DEBUG_STREAM(tvec);			
+			}
 		}
 		marker_found = true;
 	}
@@ -109,11 +141,26 @@ void imageCallback(const sensor_msgs::ImageConstPtr& msg)
   try
   {
     image = cv_bridge::toCvShare(msg, "bgr8")->image;
-    ROS_DEBUG_STREAM(image.size());
     arucoPoseEstimation(image, 0, tvec, rvec, camera_matrix, dist_coeffs, true);
-    video.write(image);
+	
+	//Publish annotated Image
+	cv_bridge::CvImage img_bridge;
+	sensor_msgs::Image img_msg; // >> message to be sent
+	std_msgs::Header header; // empty header
+	header.seq = counter; // user defined counter
+	header.stamp = ros::Time::now(); // time
+	img_bridge = cv_bridge::CvImage(header, sensor_msgs::image_encodings::BGR8, image);
+	img_bridge.toImageMsg(img_msg); // from cv_bridge to sensor_msgs::Image
+    image_pub_.publish(img_msg);
+    
+    
+    //Publish landing data
+    pose_msg.header.frame_id = "aruco_marker";
+    landing_bool_pub_.publish(landing_marker);
+    landing_tvec_pub_.publish(pose_msg);
     cv::imshow("view", image);
     cv::waitKey(30);
+    counter++;
   }
   catch (cv_bridge::Exception& e)
   {
@@ -134,16 +181,14 @@ int main(int argc, char **argv)
 	nh_private_.getParam("aruco_size", aruco_size);
 	nh_private_.getParam("windows_reduction", windows_reduction);
 	nh_private_.getParam("camera_name", camera_name);
+	nh_private_.getParam("landing_marker_id", landing_marker_id);
 	
 	//Initialise pose estimation parameters	
 	camera_matrix = cv::Mat::eye(3, 3, CV_64F);
 	dist_coeffs = cv::Mat::zeros(8, 1, CV_64F);
 	camera_matrix.at<double>(2,2) = 1;	
 	loadCalibrationMatrix(camera_name);
-	
-	//Initialise video recording parameters
-	//NOTE: Video size currently defined statically
-	cv::VideoWriter video(package_path_ + "/output.avi" ,CV_FOURCC('M','J','P','G'),30, cv::Size(856,480));
+	counter = 0;
 	
 	//Initialise OpenCV displays
 	cv::namedWindow("view", cv::WINDOW_NORMAL);
@@ -154,9 +199,10 @@ int main(int argc, char **argv)
 
 	image_transport::ImageTransport it(nh);
 	image_transport::Subscriber sub = it.subscribe(image_topic_name, 1, imageCallback);
-
+	image_pub_ = nh.advertise<sensor_msgs::Image>("/annotated_image/image", 1);
+	landing_bool_pub_ = nh.advertise<std_msgs::Bool>("/landing/marker_found",1);
+	landing_tvec_pub_ = nh.advertise<geometry_msgs::PoseStamped>("/landing/marker_pose",1);
 	ros::spin();
 	cv::destroyWindow("view");
-	video.release();
 }
   

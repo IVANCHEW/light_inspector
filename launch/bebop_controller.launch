@@ -3,6 +3,7 @@
 	<arg name="aruco_size"					default="0.08" />
 	<arg name="windows_reduction"			default="2" />
 	<arg name="camera_name"					default="bebop_camera" />
+	<arg name="landing_marker_id"			default="1" />
 	
 	<!-- joy node -->
 	<node respawn="true" pkg="joy"
@@ -17,34 +18,19 @@
 	<!-- Joy_Bebop_Interface -->
 	<node pkg="light_inspector" type="joy_bebop_interface" name="interface"/>
 	
-	<!-- Image View Node -->
-<!--
-	<node pkg="image_view" type="image_view" name="bebop_image">
-		<remap from="image" to="/bebop/image_raw"/>
-		<param name="autosize" value="true" type="bool"/>
-	</node>
--->
-	
-	<!-- Image View Node -->
-<!--
-	<node pkg="light_inspector" type="image_view" name="aruco_pose_estimation">
-	</node>
--->
-	
 	<!-- Aruco Pose Estimation Node -->
 	<node pkg="light_inspector" type="aruco_pose_estimation" name="bebop_image" output="screen">
 		<param name="aruco_size"   			type="double"   value="$(arg aruco_size)"/> 
 		<param name="windows_reduction"   	type="int"   	value="$(arg windows_reduction)"/> 
 		<param name="camera_name"   		type="string"   value="$(arg camera_name)"/> 
+		<param name="landing_marker_id"		type="int"		value="$(arg landing_marker_id)"/>
 	</node>
 	
 	<!-- Video Record Node -->
-<!--
 	<node pkg="image_view" type="video_recorder" name="bebop_record" output="screen">
-		<remap from="image" to="/bebop/image_raw"/>
-		<param name="fps" value="30" type="int"/>
+		<remap from="image" 	to="/annotated_image/image"/>
+		<param name="fps" 		value="27" 		type="int"/>
 	</node>
--->
 	
 	<!-- Bebeop Driver Node -->
 	<arg name="namespace" default="bebop" />

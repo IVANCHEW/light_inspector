@@ -15,10 +15,26 @@
 #include <iostream>
 #include <cstring>
 
+const int slider_max = 100;
+const int threshold_max = 255;
+const int threshold_type = 3;
+int slider_hue, slider_threshold;
+int hue_filter, threshold_filter;
+
 bool initialisation = true;
 std::string trackerType = "KCF";
 cv::Ptr<cv::MultiTracker> multiTracker = cv::MultiTracker::create();
 std::vector<std::string> trackerTypes;
+
+void on_trackbar_hue( int, void* )
+{
+ hue_filter = (double) slider_hue/slider_max ;
+}
+
+void on_trackbar_threshold( int, void* )
+{
+ threshold_filter = slider_threshold;
+}
 
 // create tracker by name
 cv::Ptr<cv::Tracker> createTrackerByName(std::string trackerType) 
@@ -55,6 +71,7 @@ void imageCallback(const sensor_msgs::ImageConstPtr& msg)
   std::vector<cv::Vec4i> hierarchy;
   cv::Mat image;
   cv::Mat image_grey;
+  cv::Mat image_threshold;
   cv::Mat image_canny;
   cv::Mat image_drawing;
   cv::Mat image_tracker;
@@ -69,11 +86,12 @@ void imageCallback(const sensor_msgs::ImageConstPtr& msg)
   try
   {
     image = cv_bridge::toCvShare(msg, "bgr8")->image;
+    image_drawing = image.clone();
     cv::cvtColor( image, image_grey, CV_BGR2GRAY);
-    cv::blur( image_grey, image_grey, cv::Size(3,3) );
-    cv::Canny( image_grey, image_canny, thresh, thresh*2, 3 );
+    cv::threshold( image_grey, image_threshold, threshold_filter, threshold_max,threshold_type );
+    cv::blur( image_threshold, image_threshold, cv::Size(3,3) );
+    cv::Canny( image_threshold, image_canny, thresh, thresh*2, 3 );
     cv::findContours( image_canny, contours, hierarchy, CV_RETR_TREE, CV_CHAIN_APPROX_SIMPLE, cv::Point(0, 0) );    
-    image_drawing = cv::Mat::zeros( image_canny.size(), CV_8UC3 );
     image_tracker = cv::Mat::zeros( image_canny.size(), CV_8UC3 );
     
     std::vector<std::vector<cv::Point> > contours_poly( contours.size() );
@@ -89,8 +107,9 @@ void imageCallback(const sensor_msgs::ImageConstPtr& msg)
     for( int i = 0; i< contours.size(); i++ )
     {
       //~ cv::Scalar color = cv::Scalar( rng.uniform(0, 255), rng.uniform(0,255), rng.uniform(0,255) ); //For random colors      
-      cv::drawContours( image_drawing, contours, i, color_blue, 2, 8, hierarchy, 0, cv::Point() );      
-      cv::rectangle( image_drawing, boundRect[i].tl(), boundRect[i].br(), color_red, 2, 8, 0);      
+      //~ cv::drawContours( image_drawing, contours, i, color_blue, 2, 8, hierarchy, 0, cv::Point() );      
+      //~ cv::rectangle( image_drawing, boundRect[i].tl(), boundRect[i].br(), color_red, 2, 8, 0);  
+      cv::rectangle( image_drawing, boundRect[i].tl(), boundRect[i].br(), color_red, 1, 8, 0);    
     }
     
     if (initialisation){
@@ -117,9 +136,12 @@ void imageCallback(const sensor_msgs::ImageConstPtr& msg)
     //~ cv::circle(image_tracker, image_center, 5, color_red, 5, 8, 0); 
     //~ ROS_DEBUG_STREAM("Image Center " << image_center);
     
+    //DEBUG
+    ROS_DEBUG_STREAM("Threshold value: " << threshold_filter);
+    
     cv::imshow("view", image_drawing);
     cv::imshow("original", image);
-    cv::imshow("tracker", image_tracker);
+    cv::imshow("tracker", image_threshold);
     cv::waitKey(30);
   }
   catch (cv_bridge::Exception& e)
@@ -134,6 +156,7 @@ int main(int argc, char **argv)
   ros::NodeHandle nh;
   ros::console::set_logger_level(ROSCONSOLE_DEFAULT_NAME, ros::console::levels::Debug);
   int windows_reduction = 2;
+  
   cv::namedWindow("view", cv::WINDOW_NORMAL);
   cv::moveWindow("view", 0,0);
   cv::resizeWindow("view", 1712/windows_reduction,960/windows_reduction);
@@ -147,6 +170,11 @@ int main(int argc, char **argv)
   cv::resizeWindow("tracker", 1712/windows_reduction,960/windows_reduction);
   
   cv::startWindowThread();
+  
+  slider_hue=0;
+  slider_threshold=50;
+  cv::createTrackbar("Hue Filter", "view", &slider_hue, slider_max, on_trackbar_hue );
+  cv::createTrackbar("Threshold Filter", "view", &slider_threshold, threshold_max, on_trackbar_threshold );
   
   image_transport::ImageTransport it(nh);
   image_transport::Subscriber sub = it.subscribe("/videofile/image_raw", 1, imageCallback);

@@ -14,6 +14,7 @@ find_package(catkin REQUIRED COMPONENTS
   cv_bridge
   image_transport
   OpenCV
+  yaml-cpp 
 )
 
 ## System dependencies are found with CMake's conventions
@@ -166,6 +167,8 @@ target_link_libraries(tracking_test ${catkin_LIBRARIES})
 add_executable(image_view src/image_view.cpp)
 target_link_libraries(image_view ${catkin_LIBRARIES})
 
+add_executable(aruco_pose_estimation src/aruco_pose_estimation.cpp)
+target_link_libraries(aruco_pose_estimation yaml-cpp ${catkin_LIBRARIES})
 #############
 ## Install ##
 #############

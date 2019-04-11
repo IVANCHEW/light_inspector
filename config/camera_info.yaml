@@ -1,0 +1,12 @@
+bebop_camera:
+  fx: 539.271303
+  fy: 530.670218 
+  x0: 429.442882
+  y0: 233.038977
+  k1: 0.002417
+  k2: -0.002820
+  k3: -0.004833
+  p1: 0.002323
+  p2: 0.000000
+  image_topic: /bebop/image_raw
+  cloud_topic: /kinect2/sd/points

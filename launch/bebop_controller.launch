@@ -1,6 +1,6 @@
 <?xml version="1.0"?>
 <launch>
-	<arg name="aruco_size"					default="0.08" />
+	<arg name="aruco_size"					default="0.10" />
 	<arg name="windows_reduction"			default="2" />
 	<arg name="camera_name"					default="bebop_camera" />
 	<arg name="landing_marker_id"			default="1" />
@@ -13,7 +13,7 @@
 	</node>
 
 	<!-- Axes -->
-	<node pkg="light_inspector" type="turtle_teleop_joy" name="teleop" />
+	<node pkg="light_inspector" type="turtle_teleop_joy" name="teleop" output="screen" />
 	
 	<!-- Joy_Bebop_Interface -->
 	<node pkg="light_inspector" type="joy_bebop_interface" name="interface"/>

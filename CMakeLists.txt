@@ -164,6 +164,9 @@ target_link_libraries(joy_bebop_interface ${catkin_LIBRARIES})
 add_executable(tracking_test src/tracking_test.cpp)
 target_link_libraries(tracking_test ${catkin_LIBRARIES})
 
+add_executable(image_tracking src/image_tracking.cpp)
+target_link_libraries(image_tracking yaml-cpp ${catkin_LIBRARIES})
+
 add_executable(image_view src/image_view.cpp)
 target_link_libraries(image_view ${catkin_LIBRARIES})
 

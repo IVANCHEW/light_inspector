@@ -13,7 +13,7 @@
 	</node>
 
 	<!-- Axes -->
-	<node pkg="light_inspector" type="turtle_teleop_joy" name="teleop" output="screen" />
+	<node pkg="light_inspector" type="turtle_teleop_joy" name="teleop"/>
 	
 	<!-- Joy_Bebop_Interface -->
 	<node pkg="light_inspector" type="joy_bebop_interface" name="interface"/>
@@ -27,10 +27,12 @@
 	</node>
 	
 	<!-- Video Record Node -->
+<!--
 	<node pkg="image_view" type="video_recorder" name="bebop_record" output="screen">
 		<remap from="image" 	to="/annotated_image/image"/>
 		<param name="fps" 		value="27" 		type="int"/>
 	</node>
+-->
 	
 	<!-- Bebeop Driver Node -->
 	<arg name="namespace" default="bebop" />
@@ -39,7 +41,7 @@
     <arg name="config_file" default="$(find bebop_driver)/config/defaults.yaml" />
     <arg name="camera_info_url" default="package://bebop_driver/data/$(arg drone_type)_camera_calib.yaml" />
     <group ns="$(arg namespace)">
-        <node pkg="bebop_driver" name="bebop_driver" type="bebop_driver_node">
+        <node pkg="bebop_driver" name="bebop_driver" type="bebop_driver_node" output="screen">
             <param name="camera_info_url" value="$(arg camera_info_url)" />
             <param name="bebop_ip" value="$(arg ip)" />
             <rosparam command="load" file="$(arg config_file)" />

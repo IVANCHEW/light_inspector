@@ -16,8 +16,9 @@ std::string odom_topic_ 	= "/bebop/odom";
 std::string takeoff_topic_ 	= "/bebop/takeoff";
 std::string landing_topic_ 	= "/bebop/land";
 std::string cmd_vel_topic_ 	= "/bebop/cmd_vel";
-std::string auto_pilot_topic_ = "/autoflight/start";
+std::string auto_pilot_topic_ = "/bebop/autoflight/start";
 
+bool autopilot_active_ = false;
 bool debug_ = true;
 geometry_msgs::Twist geo_msg;
 std_msgs::String auto_pilot_file_;
@@ -53,6 +54,7 @@ void cmdVelCallback(const geometry_msgs::Twist::ConstPtr& msg)
 	geo_msg.linear.y = msg->linear.y;
 	geo_msg.linear.z = msg->linear.z;
 	geo_msg.angular.z = msg->angular.z;
+	autopilot_active_ = false;
 }
 
 void takeOffCallback(const std_msgs::Empty::ConstPtr& received_msg)
@@ -72,6 +74,7 @@ void autoPilotCallback(const std_msgs::String received_msg)
 	ROS_DEBUG_STREAM("Autopilot Callback");
 	auto_pilot_file_.data = received_msg.data;
 	auto_pilot_pub.publish(auto_pilot_file_);
+	autopilot_active_ = true;
 }
 
 int main(int argc, char** argv)
@@ -96,7 +99,9 @@ int main(int argc, char** argv)
 
 	while (ros::ok()){
 		ros::spinOnce();
-		update_vel_command();
+		if (autopilot_active_==false){
+			update_vel_command();
+		}
 		loop_rate.sleep();
 	}
   

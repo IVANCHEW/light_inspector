@@ -54,7 +54,7 @@ private:
 	
 	void auto_pilot_command(){
 		ROS_INFO("Initiate Autopilot");
-		auto_pilot_file_.data = "autopilot.xml";
+		auto_pilot_file_.data = "autopilot.mavlink";
 		auto_pilot_pub.publish(auto_pilot_file_);
 	}
 	

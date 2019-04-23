@@ -19,10 +19,10 @@ const int slider_max = 100;
 const int threshold_max = 255;
 const int threshold_type = 3;
 int slider_hue, slider_threshold;
-int hue_filter, threshold_filter;
+int hue_filter, threshold_filter = 240;
 
 bool initialisation = true;
-std::string trackerType = "KCF";
+std::string trackerType = "MOSSE";
 cv::Ptr<cv::MultiTracker> multiTracker = cv::MultiTracker::create();
 std::vector<std::string> trackerTypes;
 
@@ -81,7 +81,9 @@ void imageCallback(const sensor_msgs::ImageConstPtr& msg)
   cv::RNG rng(12345);
   
   cv::Scalar color_red = cv::Scalar(0,0,255);
-  cv::Scalar color_blue = cv::Scalar(0,255,0); //Color is BGR
+  cv::Scalar color_green = cv::Scalar(0,255,0);
+  cv::Scalar color_blue = cv::Scalar(255,0,0); //Color is BGR
+  //~ cv::Scalar color = cv::Scalar( rng.uniform(0, 255), rng.uniform(0,255), rng.uniform(0,255) ); //For random colors
   
   try
   {
@@ -94,51 +96,52 @@ void imageCallback(const sensor_msgs::ImageConstPtr& msg)
     cv::findContours( image_canny, contours, hierarchy, CV_RETR_TREE, CV_CHAIN_APPROX_SIMPLE, cv::Point(0, 0) );    
     image_tracker = cv::Mat::zeros( image_canny.size(), CV_8UC3 );
     
-    std::vector<std::vector<cv::Point> > contours_poly( contours.size() );
-    std::vector<cv::Rect2d> boundRect( contours.size() );
-    //~ std::vector<cv::Point2f> center( contours.size() );
-    //~ std::vector<float> radius( contours.size() );
-    
+	std::vector<std::vector<cv::Point> > contours_poly;
+	std::vector<cv::Rect2d> boundRect;
+	
+	//Filters for top level contours, calculates center and expands the bounding box
     for( int i = 0; i< contours.size(); i++ ){
-      cv::approxPolyDP( cv::Mat(contours[i]), contours_poly[i], 3, true);
-      boundRect[i] = cv::boundingRect( cv::Mat(contours_poly[i]) );
+		if ( hierarchy[i][3] != -1 ) {	
+			std::vector<cv::Point> cp;
+			cv::Rect2d contourRect;
+			int cx, cy;
+			cv::approxPolyDP( cv::Mat(contours[i]), cp, 3, true);
+			contourRect = cv::boundingRect( cv::Mat(cp) );
+			cx = contourRect.x+contourRect.width/2; 
+			cy = contourRect.y+contourRect.height/2; 
+			contours_poly.push_back(cp);
+			boundRect.push_back(cv::Rect2d(cx-25, cy-25, 50, 50));
+		}
     }
     
+    //Draw all detected contours
     for( int i = 0; i< contours.size(); i++ )
-    {
-      //~ cv::Scalar color = cv::Scalar( rng.uniform(0, 255), rng.uniform(0,255), rng.uniform(0,255) ); //For random colors      
-      //~ cv::drawContours( image_drawing, contours, i, color_blue, 2, 8, hierarchy, 0, cv::Point() );      
-      //~ cv::rectangle( image_drawing, boundRect[i].tl(), boundRect[i].br(), color_red, 2, 8, 0);  
-      cv::rectangle( image_drawing, boundRect[i].tl(), boundRect[i].br(), color_red, 1, 8, 0);    
+    {		      
+		cv::drawContours( image_drawing, contours, i, color_blue, 2, 8, hierarchy, 0, cv::Point() );     
     }
     
-    if (initialisation){
-      initialisation = false;
-      ROS_DEBUG_STREAM("Initialisation Contour Size: " << contours.size());
-      for( int i = 0; i< contours.size(); i++ ){
-        multiTracker->add(createTrackerByName(trackerType), image_grey, boundRect[i]);
-      }
-    } else {
-      multiTracker->update(image_grey);
-      ROS_DEBUG_STREAM("Tracking Object Size: " << multiTracker->getObjects().size());
-      for(unsigned i=0; i<multiTracker->getObjects().size(); i++)
-      {
-        cv::Point rect_center = ((multiTracker->getObjects()[i].br() + multiTracker->getObjects()[i].tl())*0.5);
-        cv::circle(image_tracker, rect_center, 5, color_red, 5, 8, 0); 
-        ROS_DEBUG_STREAM("Object " << i << " Point: " << rect_center);
-      }
-    }
+    //Draw all detected bounding box
+	for(unsigned i=0; i<boundRect.size(); i++)
+	{
+		cv::rectangle( image_drawing, boundRect[i], color_red, 1, 8, 0);   
+	}
     
-    //Test
-    cv::Point image_center;
-    image_center.x = image_tracker.cols/2;
-    image_center.y = image_tracker.rows/2;
-    //~ cv::circle(image_tracker, image_center, 5, color_red, 5, 8, 0); 
-    //~ ROS_DEBUG_STREAM("Image Center " << image_center);
-    
-    //DEBUG
-    ROS_DEBUG_STREAM("Threshold value: " << threshold_filter);
-    
+    //Tracking component
+	if (initialisation){
+		initialisation = false;
+		ROS_DEBUG_STREAM("Initialisation Contour Size: " << contours.size());
+		for( int i = 0; i< boundRect.size(); i++ ){
+			multiTracker->add(createTrackerByName(trackerType), image_grey, boundRect[i]);
+		}
+	} else {
+		multiTracker->update(image_grey);
+		ROS_DEBUG_STREAM("Tracking Object Size: " << multiTracker->getObjects().size());      
+		for(unsigned i=0; i<multiTracker->getObjects().size(); i++)
+		{
+			cv::rectangle( image_drawing, multiTracker->getObjects()[i], color_green, 1, 8, 0);   
+		}
+	}
+
     cv::imshow("view", image_drawing);
     cv::imshow("original", image);
     cv::imshow("tracker", image_threshold);
@@ -172,7 +175,7 @@ int main(int argc, char **argv)
   cv::startWindowThread();
   
   slider_hue=0;
-  slider_threshold=50;
+  slider_threshold=240;
   cv::createTrackbar("Hue Filter", "view", &slider_hue, slider_max, on_trackbar_hue );
   cv::createTrackbar("Threshold Filter", "view", &slider_threshold, threshold_max, on_trackbar_threshold );
   

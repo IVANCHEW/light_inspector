@@ -25,8 +25,10 @@ private:
 	std::string cmd_vel_topic_ 	= "/bebop_joy/cmd_vel";
 	std::string auto_pilot_topic_ = "/bebop_joy/autopilot";
 	std::string tracking_topic_ = "/bebop_joy/object_tracking";
+	std::string subtract_background_topic_ = "/bebop_joy/subtract_background";
 	bool debug_ = true;
 	bool active_object_track_ = false;
+	bool active_subtract_background_ = false;
 	bool active_track_ = false;
 	bool track_marker_available_ = false;
 	int linear_, angular_;
@@ -38,10 +40,12 @@ private:
 	ros::Publisher cmd_vel_pub;
 	ros::Publisher auto_pilot_pub;
 	ros::Publisher initiate_object_track_pub;
+	ros::Publisher initiate_subtract_background_pub;
 	geometry_msgs::Twist geo_msg;
 	std_msgs::Empty empty_msg;
 	std_msgs::String auto_pilot_file_;
 	std_msgs::Bool object_tracking_msg;
+	std_msgs::Bool subtract_background_msg;
 	ros::Subscriber joy_sub_;
 	ros::Subscriber landing_bool_sub_;
 	ros::Subscriber landing_tvec_sub_;
@@ -96,6 +100,13 @@ private:
 		object_tracking_msg.data = active_object_track_;
 		initiate_object_track_pub.publish(object_tracking_msg);
 	}
+	
+	void subtract_background(){
+		active_subtract_background_ = !active_subtract_background_;
+		ROS_DEBUG_STREAM("Background subtraction toggled: " << active_subtract_background_);
+		subtract_background_msg.data = active_subtract_background_;
+		initiate_subtract_background_pub.publish(subtract_background_msg);
+	}
 
 };
 
@@ -107,6 +118,7 @@ TeleopTurtle::TeleopTurtle()
 	cmd_vel_pub = nh_.advertise<geometry_msgs::Twist>(cmd_vel_topic_, 1);
 	auto_pilot_pub = nh_.advertise<std_msgs::String>(auto_pilot_topic_, 1);	
 	initiate_object_track_pub = nh_.advertise<std_msgs::Bool>(tracking_topic_, 1);	
+	initiate_subtract_background_pub = nh_.advertise<std_msgs::Bool>(subtract_background_topic_, 1);	
 	joy_sub_ = nh_.subscribe<sensor_msgs::Joy>("joy", 10, &TeleopTurtle::joyCallback, this);
 	landing_bool_sub_ = nh_.subscribe<std_msgs::Bool>("/landing/marker_found", 1, &TeleopTurtle::LandingBoolCallback, this);
 	landing_tvec_sub_ = nh_.subscribe<geometry_msgs::PoseStamped>("/landing/marker_pose", 1, &TeleopTurtle::LandingTvecCallback, this);
@@ -139,6 +151,8 @@ void TeleopTurtle::joyCallback(const sensor_msgs::Joy::ConstPtr& joy)
 		auto_pilot_command();
 	} else if (joy->buttons[4] == 1){
 		object_tracking_toggle();
+	} else if (joy->buttons[5] == 1){
+		subtract_background();
 	}
 	update_vel_command();	
 }

@@ -14,6 +14,10 @@
 #include <opencv2/tracking/tldDataset.hpp>
 #include <iostream>
 #include <cstring>
+//Image Subtraction
+#include "opencv2/imgcodecs.hpp"
+#include <opencv2/highgui.hpp>
+#include <opencv2/video.hpp>
 
 const int slider_max = 100;
 const int threshold_max = 255;
@@ -25,6 +29,11 @@ bool initialisation = true;
 std::string trackerType = "MOSSE";
 cv::Ptr<cv::MultiTracker> multiTracker = cv::MultiTracker::create();
 std::vector<std::string> trackerTypes;
+
+//Background Subtraction parameters
+bool initialisaation_sb = true;
+bool active_subtract_background_ = true;
+cv::Ptr<cv::BackgroundSubtractor> pMOG2; //MOG2 Background subtractor
 
 void on_trackbar_hue( int, void* )
 {
@@ -75,6 +84,7 @@ void imageCallback(const sensor_msgs::ImageConstPtr& msg)
   cv::Mat image_canny;
   cv::Mat image_drawing;
   cv::Mat image_tracker;
+  cv::Mat image_subtract;
   
   int thresh = 100;
   int max_thresh = 255;
@@ -88,8 +98,14 @@ void imageCallback(const sensor_msgs::ImageConstPtr& msg)
   try
   {
     image = cv_bridge::toCvShare(msg, "bgr8")->image;
-    image_drawing = image.clone();
-    cv::cvtColor( image, image_grey, CV_BGR2GRAY);
+	image_drawing = image.clone();
+	cv::cvtColor( image, image_grey, CV_BGR2GRAY);
+	//Background subtraction
+    if(active_subtract_background_){
+		pMOG2->apply(image, image_subtract);
+		cv::bitwise_and(image_grey, image_subtract, image_grey);
+	} 
+
     cv::threshold( image_grey, image_threshold, threshold_filter, threshold_max,threshold_type );
     cv::blur( image_threshold, image_threshold, cv::Size(3,3) );
     cv::Canny( image_threshold, image_canny, thresh, thresh*2, 3 );
@@ -155,43 +171,45 @@ void imageCallback(const sensor_msgs::ImageConstPtr& msg)
 
 int main(int argc, char **argv)
 {
-  ros::init(argc, argv, "image_listener");
-  ros::NodeHandle nh;
-  ros::console::set_logger_level(ROSCONSOLE_DEFAULT_NAME, ros::console::levels::Debug);
-  int windows_reduction = 2;
-  
-  cv::namedWindow("view", cv::WINDOW_NORMAL);
-  cv::moveWindow("view", 0,0);
-  cv::resizeWindow("view", 1712/windows_reduction,960/windows_reduction);
-  
-  cv::namedWindow("original", cv::WINDOW_NORMAL);
-  cv::moveWindow("original", 2000/windows_reduction,0);
-  cv::resizeWindow("original", 1712/windows_reduction,960/windows_reduction);
+	ros::init(argc, argv, "image_listener");
+	ros::NodeHandle nh;
+	ros::console::set_logger_level(ROSCONSOLE_DEFAULT_NAME, ros::console::levels::Debug);
+	int windows_reduction = 2;
 
-  cv::namedWindow("tracker", cv::WINDOW_NORMAL);
-  cv::moveWindow("tracker", 0,1100/windows_reduction);
-  cv::resizeWindow("tracker", 1712/windows_reduction,960/windows_reduction);
-  
-  cv::startWindowThread();
-  
-  slider_hue=0;
-  slider_threshold=240;
-  cv::createTrackbar("Hue Filter", "view", &slider_hue, slider_max, on_trackbar_hue );
-  cv::createTrackbar("Threshold Filter", "view", &slider_threshold, threshold_max, on_trackbar_threshold );
-  
-  image_transport::ImageTransport it(nh);
-  image_transport::Subscriber sub = it.subscribe("/videofile/image_raw", 1, imageCallback);
-  
-  trackerTypes.push_back("BOOSTING");
-  trackerTypes.push_back("MIL");
-  trackerTypes.push_back("KCF");
-  trackerTypes.push_back("TLD");
-  trackerTypes.push_back("MEDIANFLOW");
-  trackerTypes.push_back("GOTURN");
-  trackerTypes.push_back("MOSSE");
-  trackerTypes.push_back("CSRT");
+	cv::namedWindow("view", cv::WINDOW_NORMAL);
+	cv::moveWindow("view", 0,0);
+	cv::resizeWindow("view", 1712/windows_reduction,960/windows_reduction);
 
-  ros::spin();
-  cv::destroyWindow("view");
+	cv::namedWindow("original", cv::WINDOW_NORMAL);
+	cv::moveWindow("original", 2000/windows_reduction,0);
+	cv::resizeWindow("original", 1712/windows_reduction,960/windows_reduction);
+
+	cv::namedWindow("tracker", cv::WINDOW_NORMAL);
+	cv::moveWindow("tracker", 0,1100/windows_reduction);
+	cv::resizeWindow("tracker", 1712/windows_reduction,960/windows_reduction);
+
+	cv::startWindowThread();
+
+	slider_hue=0;
+	slider_threshold=240;
+	cv::createTrackbar("Hue Filter", "view", &slider_hue, slider_max, on_trackbar_hue );
+	cv::createTrackbar("Threshold Filter", "view", &slider_threshold, threshold_max, on_trackbar_threshold );
+
+	image_transport::ImageTransport it(nh);
+	image_transport::Subscriber sub = it.subscribe("/videofile/image_raw", 1, imageCallback);
+
+	trackerTypes.push_back("BOOSTING");
+	trackerTypes.push_back("MIL");
+	trackerTypes.push_back("KCF");
+	trackerTypes.push_back("TLD");
+	trackerTypes.push_back("MEDIANFLOW");
+	trackerTypes.push_back("GOTURN");
+	trackerTypes.push_back("MOSSE");
+	trackerTypes.push_back("CSRT");
+	
+	pMOG2 = cv::createBackgroundSubtractorMOG2();
+	
+	ros::spin();
+	cv::destroyWindow("view");
 }
   

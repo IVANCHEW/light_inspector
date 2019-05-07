@@ -4,6 +4,7 @@
 	<arg name="windows_reduction"			default="2" />
 	<arg name="camera_name"					default="bebop_camera" />
 	<arg name="landing_marker_id"			default="1" />
+	<arg name="image_tracking_debug"		default="true" />
 	
 	<!-- joy node -->
 	<node respawn="true" pkg="joy"
@@ -30,6 +31,7 @@
 	<node pkg="light_inspector" type="image_tracking" name="bebop_object_tracking" output="screen">
 		<param name="windows_reduction"   	type="int"   	value="$(arg windows_reduction)"/> 
 		<param name="camera_name"   		type="string"   value="$(arg camera_name)"/> 
+		<param name="image_tracking_debug"  type="bool"   	value="$(arg image_tracking_debug)"/> 
 	</node>
 	
 	<!-- Video Record Node -->
